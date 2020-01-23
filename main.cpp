@@ -10,838 +10,91 @@
 using namespace std;
 const int MaxN = 22;
 const int MaxT = 6000;
-fstream in("in.txt");
-fstream re("out.txt");
-int M,N,K,T;
-/*Ã¿¸öË¾Áî²¿Ò»¿ªÊ¼¶¼ÓĞM¸öÉúÃüÔª( 1 <= M <= 100000)
-Á½¸öË¾Áî²¿Ö®¼äÒ»¹²ÓĞN¸ö³ÇÊĞ( 1 <= N <= 20 )
-lionÃ¿Ç°½øÒ»²½£¬ÖÒ³Ï¶È¾Í½µµÍK¡£(0<=K<=100)
-ÒªÇóÊä³ö´Ó0Ê±0·Ö¿ªÊ¼£¬µ½Ê±¼äTÎªÖ¹(°üÀ¨T) µÄËùÓĞÊÂ¼ş¡£TÒÔ·ÖÖÓÎªµ¥Î»£¬0 <= T <= 6000*/
-int WHPElement;
-int EHPElement;
-int RCreate;//ºì·½ÖÆÔìÎäÊ¿µÄË³ĞòÖ¸Õë
-int BCreate;//À¶·½ÖÆÔìÎäÊ¿µÄË³ĞòÖ¸Õë
-int RedWID;
-int BlueWID;
-int Hours;
-int Minutes;
-void Time(){//Ê±¼äÊä³ö
-    //printf("%03d:%02d ",Hours,Minutes);
-    re<<setw(3)<<setfill('0')<<Hours;
-    re<<":";
-    re<<setw(2)<<setfill('0')<<Minutes;
-    re<<" ";
-    return;
-}
-class Weapon{//ÎäÆ÷
-public:
-    int ID;
-    int Number;
-    int ATK;
-    Weapon(int id,int n,int atk):ID(id),Number(n),ATK(atk){}
-    virtual void Effect(){return;}//ÎäÆ÷Ğ§¹û
-};
-class sword:public Weapon{//½£
-public:
-    sword(int atk):Weapon(0,1,2/10*atk){//20%ATK,Number1
-    }
-};
-class bomb:public Weapon{//Õ¨µ¯
-public:
-    bomb(int atk):Weapon(1,1,4/10*atk){//40%ATK,Number1
-    }
-};
-class arrow:public Weapon{//¼ıÊ¸
-public:
-    arrow(int atk):Weapon(2,2,3/10*atk){//30%ATK,Number2
-    }
-};
-bool comp0(const Weapon* a){//ÊÇ·ñÊÇ½£
-    return a->ID == 0;
-}
-bool comp1(const Weapon* a){//ÊÇ·ñÊÇÕ¨µ¯
-    return a->ID == 1;
-}
-bool comp2(const Weapon* a){//ÊÇ·ñÊÇ¼ıÊ¸
-    return a->ID == 2;
-}
-bool comp3(const Weapon* a,const Weapon* b){//ÎäÆ÷ÅÅĞò±È½Ïº¯Êı£¬¼ıÉÙµÄÔÚÇ°£¬Õ½¶·Ê¹ÓÃ
-    if(a->ID < b->ID)
-        return true;
-    if(a->ID == b->ID && a->ID == 2){//¶àÖ§arrow
-        if(a->Number<b->Number)
-            return true;
-    }
-    return false;
-}
-bool comp4(const Weapon* a,const Weapon* b){//ÎäÆ÷ÅÅĞò±È½Ïº¯Êı£¬¼ı¶àµÄÔÚÇ°,½É»ñºÍÇÀ¶áÊ¹ÓÃ
-    if(a->ID < b->ID)
-        return true;
-    if(a->ID == b->ID && a->ID == 2){//¶àÖ§arrow
-        if(a->Number>b->Number)
-            return true;
-    }
-    return false;
-}
-class Warrior{//ÎäÊ¿
-public:
-    int ID;//±àºÅ
-    int HP;//ÑªÁ¿
-    int type;//ÀàĞÍ£¬ÅÉÉúÀàÅĞ¶Ï
-    int ATK;//ÊµÌå¹¥»÷Á¦
-    vector<Weapon*>::iterator W;//Õ½¶·ÓÃÎäÆ÷Ö¸Õë
-    vector<Weapon*> Take;//ÎäÆ÷Êı×é
-    Warrior(int id,int hp,int t,int atk):ID(id),HP(hp),type(t),ATK(atk){}
-    void WeaponSort(int n){//ÎäÆ÷ÅÅĞò
-        if(!Take.empty()){//STLËã·¨SortÅÅĞò£¬×Ô¶¨ÒåÒ»¸ö±È½Ïº¯Êı
-            if(n == 3)sort(Take.begin(),Take.end(),comp3);
-            if(n == 4)sort(Take.begin(),Take.end(),comp4);
-        }
-        return;
-    }
-    void report(){//±¨¸æÎäÆ÷Çé¿ö
-        re<<ID<<" has ";
-        re<<count_if(Take.begin(),Take.end(),comp0)<<" sword ";
-        re<<count_if(Take.begin(),Take.end(),comp1)<<" bomb ";
-        re<<count_if(Take.begin(),Take.end(),comp2)<<" arrow ";
-        re<<"and "<<HP<<" elements"<<endl;
-        return;
-    }
-    void Attack(Warrior* Enemy){
-        Weapon* U = *W;//ÓÃÒ»¼şÎäÆ÷
-        switch(U->ID){
-            case 0://ÓÃ½£
-                U->ATK = ATK*2/10;
-                break;
-            case 1://ÓÃÕ¨µ¯
-                U->ATK = ATK*4/10;
-                if(type!=2)//²»ÊÇniniia
-                    HP -= U->ATK/2;//Õ¨µ¯¶Ô×ÔÉíÔì³ÉÒ»°ëÉËº¦
-                U->Number--;
-                break;
-            case 2://ÓÃ¼ıÊ¸
-                U->ATK = ATK*3/10;
-                U->Number--;
-                break;
-        }
-        Enemy->HP -= U->ATK;
-        if(!U->Number){//Ê¹ÓÃ´ÎÊıÃ»ÁË
-            vector<Weapon*>::iterator D = W;
-            //W++;
-            Take.erase(D);
-        }
-        else
-            W++;
-        if(W == Take.end())//Ò»ÂÖÎäÆ÷ÓÃÍêÖØÖÃ;
-            W = Take.begin();
-        return;
-    }
-    void Seize(Warrior* Aim){//½É»ñ²Ù×÷
-        Aim->WeaponSort(4);//Ä¿±êÎäÆ÷½ÓÊÜÅÅĞò
-        while(Take.size()<10&&!Aim->Take.empty()){//ÇÀ¶á¹ı³Ì
-            Take.push_back(*Aim->Take.begin());//ÇÀÈë¸´ÖÆ
-            Aim->Take.erase(Aim->Take.begin());//Ä¿±êÉ¾³ı
-        }
-        return;
-    }
-    virtual void loyal(){return;}
-    virtual bool Escape(){return false;}
-    virtual void Move(){return;}
-    virtual void Rob(Warrior* Aim){return;}
-    virtual void name(){return;};
-    virtual ~Warrior(){
-        for(int i = 0;i<Take.size();i++)//ÊÖ¹¤ÊÍ·ÅÄÚ´æ
-            delete Take[i];
-        //delete &Take;
-    }
-};
-class dragon:public Warrior{
-public:
-    static int OriginalHP;//³õÊ¼ÉúÃüÖµ
-    static int ATK;//¹Ì¶¨¹¥»÷Á¦
-    dragon(int id):Warrior(id,OriginalHP,1,ATK){
-        //»ñµÃÎäÆ÷
-        switch(id%3){
-            case 0:
-                Take.push_back(new sword(ATK));
-                break;
-            case 1:
-                Take.push_back(new bomb(ATK));
-                break;
-            case 2:
-                Take.push_back(new arrow(ATK));
-                break;
-        }
-    }
-    void name(){
-        re<<"dragon";
-        return;
-    }
-};
-int dragon::OriginalHP = 0;
-int dragon::ATK = 0;
-class ninjia:public Warrior{
-public:
-    static int OriginalHP;//³õÊ¼ÉúÃüÖµ
-    static int ATK;//¹Ì¶¨¹¥»÷Á¦
-    ninjia(int id):Warrior(id,OriginalHP,2,ATK){
-        //»ñµÃÎäÆ÷
-        switch(id%3){
-            case 0:
-                Take.push_back(new sword(ATK));
-                Take.push_back(new bomb(ATK));
-                break;
-            case 1:
-                Take.push_back(new bomb(ATK));
-                Take.push_back(new arrow(ATK));
-                break;
-            case 2:
-                Take.push_back(new arrow(ATK));
-                Take.push_back(new sword(ATK));
-                break;
-        }
-    }
-    void name(){
-        re<<"ninja";
-        return;
-    }
-    //Õ¨µ¯×Ô¼º²»ÊÜÉË
-};
-int ninjia::OriginalHP = 0;
-int ninjia::ATK = 0;
-class iceman:public Warrior{
-public:
-    static int OriginalHP;//³õÊ¼ÉúÃüÖµ
-    static int ATK;//¹Ì¶¨¹¥»÷Á¦
-    iceman(int id):Warrior(id,OriginalHP,3,ATK){
-        //»ñµÃÎäÆ÷
-        switch(id%3){
-            case 0:
-                Take.push_back(new sword(ATK));
-                break;
-            case 1:
-                Take.push_back(new bomb(ATK));
-                break;
-            case 2:
-                Take.push_back(new arrow(ATK));
-                break;
-        }
-    }
-    void Move(){//ÑªÁ¿¼õÉÙĞéº¯Êı
-        HP -= HP/10;
-        return;
-    }
-    void name(){
-        re<<"iceman";
-        return;
-    }
-};
-int iceman::OriginalHP = 0;
-int iceman::ATK = 0;
-class lion:public Warrior{
-    int loyalty;//ÖÒ³Ï¶È
-public:
-    static int OriginalHP;//³õÊ¼ÉúÃüÖµ
-    static int ATK;//¹Ì¶¨¹¥»÷Á¦
-    lion(int id,int k):Warrior(id,OriginalHP,4,ATK),loyalty(k){
-        //»ñµÃÎäÆ÷
-        switch(id%3){
-            case 0:
-                Take.push_back(new sword(ATK));
-                break;
-            case 1:
-                Take.push_back(new bomb(ATK));
-                break;
-            case 2:
-                Take.push_back(new arrow(ATK));
-                break;
-        }
-    }
-    void Move(){//ÖÒ³Ï¶È¼õÉÙĞéº¯Êı
-        loyalty -= K;
-        return;
-    }
-    void loyal(){
-        re<<loyalty;
-        return;
-    }
-    bool Escape(){//ÌÓÅÜ
-        if(loyalty <= 0)
-            return true;
-        return false;
-    }
-    void name(){
-        re<<"lion";
-        return;
-    }
-};
-int lion::OriginalHP = 0;
-int lion::ATK = 0;
-class wolf:public Warrior{
-public:
-    static int OriginalHP;//³õÊ¼ÉúÃüÖµ
-    static int ATK;//¹Ì¶¨¹¥»÷Á¦
-    wolf(int id):Warrior(id,OriginalHP,5,ATK){}
-    void Rob(Warrior* Aim){//ÇÀ¶áÎäÆ÷
-        Aim->WeaponSort(4);//Ä¿±êÎäÆ÷½ÓÊÜÅÅĞò
-        int RType = Aim->Take[0]->ID;//¼ÇÂ¼ÇÀ¶áÖÖÀà
-        int number = 0;//¼ÇÂ¼ÇÀ¶á¸öÊı
-        while(Take.size()<10&&!Aim->Take.empty()&&RType == Aim->Take[0]->ID){//ÇÀ¶á¹ı³Ì
-            Take.push_back(*Aim->Take.begin());//ÇÀÈë¸´ÖÆ
-            Aim->Take.erase(Aim->Take.begin());//Ä¿±êÉ¾³ı
-            number++;
-        }
-        //±¨¸æÇÀ¶á½á¹û
-        re<<"took "<<number<<" ";
-        switch(RType){
-            case 0:
-                re<<"sword";
-                break;
-            case 1:
-                re<<"bomb";
-                break;
-            case 2:
-                re<<"arrow";
-                break;
-        }
-        return;
-    }
-    void name(){
-        re<<"wolf";
-        return;
-    }
-};
-int wolf::OriginalHP = 0;
-int wolf::ATK = 0;
-class City{//³ÇÊĞ
-public:
-    int ID;
-    Warrior* Blue;//À¶·½ÎäÊ¿
-    Warrior* Red;//ºì·½ÎäÊ¿
-    //×´Ì¬¼ÇÂ¼±äÁ¿£¨Íµ¸öÀÁ£¬Ó¦¸ÃÊ¹ÓÃ½á¹¹Ìå·â×°£©
-    int turn;//»ØºÏÊı
-    int ROHP;
-    int BOHP;
-    int RTN;
-    int BTN;
-    City(int n):ID(n),Blue(NULL),Red(NULL){}
-    void Create(int n){//Èç¹ûË¾Áî²¿ÖĞµÄÉúÃüÔª²»×ãÒÔÖÆÔìÄ³±¾¸ÃÔìµÄÎäÊ¿£¬ÄÇ¾Í´Ó´ËÍ£Ö¹ÖÆÔìÎäÊ¿¡£
-        if(n == 0){//×÷Îªºì·½ÖÆÔìÒ»¸öÎäÊ¿
-            switch(RCreate){
-                case 0://iceman
-                    if(WHPElement>=iceman::OriginalHP){
-                       Red = new iceman(RedWID);
-                       WHPElement -= iceman::OriginalHP;
-                       RedWID++;
-                       RCreate = (RCreate+1)%5;
-                       Time();
-                       re<<"red ";Red->name();re<<" "<<Red->ID<<" born"<<endl;
-                    }
-                    break;
-                case 1://lion
-                    if(WHPElement>=lion::OriginalHP){
-                       WHPElement -= lion::OriginalHP;
-                       Red = new lion(RedWID,WHPElement);
-                       RedWID++;
-                       RCreate = (RCreate+1)%5;
-                       Time();
-                       re<<"red ";Red->name();re<<" "<<Red->ID<<" born"<<endl;
-                       re<<"Its loyalty is ";Red->loyal();re<<endl;
-                    }
-                    break;
-                case 2://wolf
-                    if(WHPElement>=wolf::OriginalHP){
-                       Red = new wolf(RedWID);
-                       WHPElement -= wolf::OriginalHP;
-                       RedWID++;
-                       RCreate = (RCreate+1)%5;
-                       Time();
-                       re<<"red ";Red->name();re<<" "<<Red->ID<<" born"<<endl;
-                    }
-                    break;
-                case 3://ninjia
-                    if(WHPElement>=ninjia::OriginalHP){
-                       Red = new ninjia(RedWID);
-                       WHPElement -= ninjia::OriginalHP;
-                       RedWID++;
-                       RCreate = (RCreate+1)%5;
-                       Time();
-                       re<<"red ";Red->name();re<<" "<<Red->ID<<" born"<<endl;
-                    }
-                    break;
-                case 4://dragon
-                    if(WHPElement>=dragon::OriginalHP){
-                       Red = new dragon(RedWID);
-                       WHPElement -= dragon::OriginalHP;
-                       RedWID++;
-                       RCreate = (RCreate+1)%5;
-                       Time();
-                       re<<"red ";Red->name();re<<" "<<Red->ID<<" born"<<endl;
-                    }
-                    break;
-            }
-        }
-        else if(n == 1){//×÷ÎªÀ¶·½ÖÆÔìÒ»¸öÎäÊ¿
-            switch(BCreate){
-                case 0://lion
-                    if(EHPElement>=lion::OriginalHP){
-                       EHPElement -= lion::OriginalHP;
-                       Blue = new lion(BlueWID,EHPElement);
-                       BlueWID++;
-                       BCreate = (BCreate+1)%5;
-                       Time();
-                       re<<"blue ";Blue->name();re<<" "<<Blue->ID<<" born"<<endl;
-                       re<<"Its loyalty is ";Blue->loyal();re<<endl;
-                    }
-
-                    break;
-                case 1://dragon
-                    if(EHPElement>=dragon::OriginalHP){
-                       Blue = new dragon(BlueWID);
-                       EHPElement -= dragon::OriginalHP;
-                       BlueWID++;
-                       BCreate = (BCreate+1)%5;
-                       Time();
-                       re<<"blue ";Blue->name();re<<" "<<Blue->ID<<" born"<<endl;
-                    }
-                    break;
-                case 2://ninjia
-                    if(EHPElement>ninjia::OriginalHP){
-                       Blue = new ninjia(BlueWID);
-                       EHPElement -= ninjia::OriginalHP;
-                       BlueWID++;
-                       BCreate = (BCreate+1)%5;
-                       Time();
-                       re<<"blue ";Blue->name();re<<" "<<Blue->ID<<" born"<<endl;
-                    }
-                    break;
-                case 3://iceman
-                    if(EHPElement>=iceman::OriginalHP){
-                       Blue = new iceman(BlueWID);
-                       EHPElement -= iceman::OriginalHP;
-                       BlueWID++;
-                       BCreate = (BCreate+1)%5;
-                       Time();
-                       re<<"blue ";Blue->name();re<<" "<<Blue->ID<<" born"<<endl;
-                    }
-                    break;
-                case 4://wolf
-                    if(EHPElement>=wolf::OriginalHP){
-                       Blue = new wolf(BlueWID);
-                       EHPElement -= wolf::OriginalHP;
-                       BlueWID++;
-                       BCreate = (BCreate+1)%5;
-                       Time();
-                       re<<"blue ";Blue->name();re<<" "<<Blue->ID<<" born"<<endl;
-                    }
-                    break;
-            }
-        }
-        return;
-    }
-    void Escape(){//lionÌÓÅÜ
-        if(Red!=NULL){
-            if(Red->Escape()){
-                Time();re<<"blue ";Red->name();
-                re<<" "<<Red->ID<<" ran away"<<endl;
-                delete Red;
-                Red = NULL;
-            }
-        }
-        if(Blue!=NULL){
-            if(Blue->Escape()){
-                Time();re<<"blue ";Blue->name();
-                re<<" "<<Blue->ID<<" ran away"<<endl;
-                delete Blue;
-                Blue = NULL;
-            }
-        }
-        return;
-    }
-    void Rob(){//ÓĞÀÇµÄ»°ÇÀ½Ù
-        if(Blue!=NULL&&Red!=NULL){
-            if(Blue->type == 5&&Red->type != 5&&!Red->Take.empty()){//À¶ÇÀºì
-                Time();
-                re<<"blue wolf "<<Blue->ID<<" ";
-                Blue->Rob(Red);
-                re<<" from red ";Red->name();
-                re<<" "<<Red->ID<<" in city "<<ID<<endl;
-            }
-            else if(Blue->type != 5&&Red->type == 5&&!Blue->Take.empty()){//ºìÇÀÀ¶
-                Time();
-                re<<"red wolf "<<Red->ID<<" ";
-                Red->Rob(Blue);
-                re<<" from blue ";Blue->name();
-                re<<" "<<Blue->ID<<" in city "<<ID<<endl;
-            }
-        }
-        return;
-    }
-    void Battle(){//³ÇÊĞÖĞÖ´ĞĞÕ½¶·
-        if(Red!=NULL&&Blue!=NULL){//·¢ÉúÕ½¶·
-            //Æ½¾ÖÅĞ¶Ï
-            if(Red->Take.empty()&&Blue->Take.empty()){
-                BattleResult(1);
-                return;
-            }
-            //ÎäÆ÷ÅÅĞò
-            Red->WeaponSort(3);Blue->WeaponSort(3);
-            //¾ö¶¨ÏÈºóÊÖ,ÉèÖÃÕ½¶·ÓÃ±äÁ¿
-            Warrior* first = NULL;
-            Warrior* second = NULL;
-            if(ID%2){//ºì1
-                first = Red;
-                second = Blue;
-            }
-            else{//À¶0
-                first = Blue;
-                second = Red;
-            }
-            first->W = first->Take.begin(); //ÎäÆ÷Ö¸Õë¹éÁã
-            second->W = second->Take.begin(); //ÎäÆ÷Ö¸Õë¹éÁã
-            turn = 1;
-            ROHP = Red->HP;
-            BOHP = Blue->HP;
-            RTN = Red->Take.size();
-            BTN = Blue->Take.size();
-            while(!BattleJudge()){//while()ÏÈºóÊÖ½»ÌæÊ¹ÓÃ
-                //Õ½¶·¹ı³Ì£¬Ê¹ÓÃÒ»¼şÎäÆ÷£¬¿ÛÑªºËĞÄ»úÖÆºÍÌØÊâ¼¼ÄÜ´¦Àí
-                if(!first->Take.empty())
-                    first->Attack(second);
-                //½»»»ĞĞ¶¯È¨
-                Warrior* temp = first;
-                first = second;
-                second = temp;
-                turn++;
-            }
-            BattleResult(BattleJudge());
-        }
-        return;
-    }
-    int BattleJudge(){//Ê¤¸ºÆ½¾ÖÅĞ¶Ï,0±íÊ¾»¹Ã»½áÊø
-        if(Red->HP<=0&&Blue->HP<=0)//Ë«·½¶¼ËÀÁË£¬Æ½¾Ö
-            return 1;
-        if(Red->HP<=0)//ºì·½ËÀÁË£¬À¶·½Ê¤
-            return 3;
-        if(Blue->HP<=0)//À¶·½ËÀÁË£¬ºì·½Ê¤
-            return 2;
-        if(Red->Take.empty()&&Blue->Take.empty())//Ë«·½¶¼»î×ÅÇÒÎäÆ÷¶¼Ã»ÁË£¬Æ½¾Ö
-            return 1;
-        if(turn%10 == 0){//Ë«·½×´Ì¬²»·¢Éú±ä»¯£¬Æ½¾Ö
-            if(Red->HP == ROHP &&
-               Blue->HP == BOHP &&
-               Red->Take.size() == RTN &&
-               Blue->Take.size() == BTN)
-                return 1;
-            else{//¼ÇÂ¼Êı¾İ
-                ROHP = Red->HP;
-                BOHP = Blue->HP;
-                RTN = Red->Take.size();
-                BTN = Blue->Take.size();
-            }
-        }
-        return 0;//Ã»´òÍê
-    }
-    void BattleResult(int n){//1Æ½¾Ö£¬2ºìÊ¤£¬3À¶Ê¤
-        //Ê¤¸º½á¹ûÊä³ö
-        Time();
-        switch(n){
-            case 1:
-                if(Red->HP>0){
-                    re<<"both red ";Red->name();
-                    re<<" "<<Red->ID<<" and blue ";Blue->name();
-                    re<<" "<<Blue->ID<<" were alive in city "<<ID<<endl;
-                }
-                else{
-                    re<<"both red ";Red->name();
-                    re<<" "<<Red->ID<<" and blue ";Blue->name();
-                    re<<" "<<Blue->ID<<" died in city "<<ID<<endl;
-                }
-                break;
-            case 2:
-                re<<"red ";Red->name();
-                re<<" "<<Red->ID<<" killed blue ";Blue->name();
-                re<<" "<<Blue->ID<<" in city "<<ID<<" remaining "<<Red->HP<<" elements"<<endl;
-                Red->Seize(Blue);//½É»ñ´¦Àí
-                break;
-            case 3:
-                re<<"blue ";Blue->name();
-                re<<" "<<Blue->ID<<" killed red ";Red->name();
-                re<<" "<<Red->ID<<" in city "<<ID<<" remaining "<<Blue->HP<<" elements"<<endl;
-                Blue->Seize(Red);//½É»ñ´¦Àí
-                break;
-        }
-        //dragon»¶ºô
-        if(Red->HP>0&&Red->type == 1){
-            Time();
-            re<<"red ";Red->name();
-            re<<" "<<Red->ID<<" yelled in city "<<ID<<endl;
-        }
-        if(Blue->HP>0&&Blue->type == 1){
-            Time();
-            re<<"blue ";Blue->name();
-            re<<" "<<Blue->ID<<" yelled in city "<<ID<<endl;
-        }
-        return;
-    }
-    void death(){//ËÀÍö´¦Àí
-        if(Red!=NULL&&Red->HP<=0){
-            delete Red;
-            Red = NULL;
-        }
-        if(Blue!=NULL&&Blue->HP<=0){
-            delete Blue;
-            Blue = NULL;
-        }
-        return;
-    }
-    void Report(){//ÓĞÎäÊ¿µÄ»°»ã±¨
-        if(Red!=NULL){
-            Time();
-            re<<"red ";
-            Red->name();
-            re<<" ";
-            Red->report();
-        }
-        if(Blue!=NULL){
-            Time();
-            re<<"blue ";
-            Blue->name();
-            re<<" ";
-            Blue->report();
-        }
-        return;
-    }
-    ~City(){
-        delete Red;
-        delete Blue;
-        Red = Blue = NULL;
-    }
-};
-City* BG[MaxN];//³ÇÊĞÊı×é
-class Events{//ÊÂ¼şÊ±ÖÓ
-public:
-    City* Red;//ºì·½Ë¾Áî²¿
-    City* Blue;//À¶·½Ë¾Áî²¿
-    Events(){}
-    //Ö´ĞĞ¸÷ÊÂ¼ş
-    void Start(int n){//Êı¾İÊäÈë
-        in>>M>>N>>K>>T;
-        BCreate = RCreate = 0;//ÒÀÕÕ´ÎĞò´ÓÍ·¿ªÊ¼ÖÆÔìÎäÊ¿
-        RedWID = BlueWID = 1;//±àºÅ
-        Hours = Minutes = 0;//Ê±¼ä´ÓÁã¿ªÊ¼
-        WHPElement = EHPElement = M;
-        in>>dragon::OriginalHP>>ninjia::OriginalHP>>iceman::OriginalHP>>lion::OriginalHP>>wolf::OriginalHP;
-        in>>dragon::ATK>>ninjia::ATK>>iceman::ATK>>lion::ATK>>wolf::ATK;
-        for(int i=0;i<N+2;i++)//³õÊ¼»¯³ÇÊĞÊı×é
-            BG[i] = new City(i);
-        Red = BG[0];Blue = BG[N+1];
-        Process();
-        return;
-    }
-    bool TimeJudge(){//ÊÇ·ñ³¬Ê±
-        if(Hours*60+Minutes>T)
-            return true;
-        return false;
-    }
-    void Process(){//ÊÂ¼ş¹ı³Ì
-        while(true){//Ê±¼äµ½»òÕßÈÎÒâË¾Áî²¿±»Õ¼Áì¾ÍÍË³öÑ­»·
-            Minutes = 0;if(TimeJudge())break;//ÔÚÃ¿¸öÕûµã£¬¼´Ã¿¸öĞ¡Ê±µÄµÚ0·Ö£¬ Ë«·½µÄË¾Áî²¿ÖĞ¸÷ÓĞÒ»¸öÎäÊ¿½µÉú¡£
-            Red->Create(0);//ºì·½Ë¾Áî²¿°´ÕÕiceman¡¢lion¡¢wolf¡¢ninja¡¢dragon µÄË³ĞòÖÆÔìÎäÊ¿¡£
-            Blue->Create(1);//À¶·½Ë¾Áî²¿°´ÕÕlion¡¢dragon¡¢ninja¡¢iceman¡¢wolf µÄË³ĞòÖÆÔìÎäÊ¿¡£
-            Minutes = 5;if(TimeJudge())break;
-            for(int i=0;i<N+2;i++)//ÔÚÃ¿¸öĞ¡Ê±µÄµÚ5·Ö£¬¸ÃÌÓÅÜµÄlion¾ÍÔÚÕâÒ»Ê±¿ÌÌÓÅÜÁË¡£
-                BG[i]->Escape();
-            Minutes = 10;if(TimeJudge())break;
-            Warrior* R = NULL;//ÉèÖÃÒ»¸öºì·½»º´æÀ´±íÊ¾Î÷±ßµÄ³ÇÊĞÓĞÈËĞèÒªÒÆ¶¯
-            for(int i=0;i<N+2;i++){////ÔÚÃ¿¸öĞ¡Ê±µÄµÚ10·Ö£ºËùÓĞµÄÎäÊ¿³¯µĞÈËË¾Áî²¿·½ÏòÇ°½øÒ»²½¡£
-                if(i==0){//À¶·½È¥ºì·½Ë¾Áî²¿
-                    if(BG[i]->Red!=NULL){//ºì·½»º´æ
-                        R = BG[i]->Red;
-                        BG[i]->Red = NULL;
-                    }
-                    if(BG[i+1]->Blue!=NULL){
-                        BG[i]->Blue = BG[i+1]->Blue;
-                        BG[i+1]->Blue = NULL;
-                        BG[i]->Blue->Move();
-                        Time();
-                        re<<"blue ";BG[i]->Blue->name();re<<" "<<BG[i]->Blue->ID<<" reached red headquarter ";
-                        re<<"with "<<BG[i]->Blue->HP<<" elements and force "<<BG[i]->Blue->ATK<<endl;
-                        Time();
-                        re<<"red headquarter was taken"<<endl;
-                    }
-                    continue;
-                }
-                if(i==N+1){//ºì·½È¥À¶·½Ë¾Áî²¿
-                    if(R!=NULL){
-                        BG[i]->Red = R;
-                        R = NULL;
-                        BG[i]->Red->Move();
-                        Time();
-                        re<<"red ";BG[i]->Red->name();re<<" "<<BG[i]->Red->ID<<" reached blue headquarter ";
-                        re<<"with "<<BG[i]->Red->HP<<" elements and force "<<BG[i]->Red->ATK<<endl;
-                        Time();
-                        re<<"blue headquarter was taken"<<endl;
-                    }
-                    continue;
-                }
-                //ÒÔi³ÇÎªÄ¿µÄµØ,ºì·½´ÓÎ÷,½»»»RºÍBG[i]->RedµÄÖ¸Ïò
-                Warrior* temp = R;
-                R = BG[i]->Red;
-                BG[i]->Red = temp;
-                if(BG[i]->Red != NULL){
-                    BG[i]->Red->Move();
-                    Time();
-                    re<<"red ";BG[i]->Red->name();re<<" "<<BG[i]->Red->ID<<" marched to city "<<i;
-                    re<<" with "<<BG[i]->Red->HP<<" elements and force "<<BG[i]->Red->ATK<<endl;
-                }
-                if(BG[i+1]->Blue!=NULL){//À¶·½´Ó¶«
-                    BG[i]->Blue = BG[i+1]->Blue;
-                    BG[i+1]->Blue = NULL;
-                    BG[i]->Blue->Move();
-                    Time();
-                    re<<"blue ";BG[i]->Blue->name();re<<" "<<BG[i]->Blue->ID<<" marched to city "<<i;
-                    re<<" with "<<BG[i]->Blue->HP<<" elements and force "<<BG[i]->Blue->ATK<<endl;
-                }
-            }
-            if(Red->Blue!=NULL||Blue->Red!=NULL)break;//´Ë´¦ÊÇÕ¼Áì&½áÊøÅĞ¶Ï
-            Minutes = 35;if(TimeJudge())break;
-            for(int i=0;i<N+2;i++)//ÔÚÃ¿¸öĞ¡Ê±µÄµÚ35·Ö£ºÔÚÓĞwolf¼°ÆäµĞÈËµÄ³ÇÊĞ£¬wolfÒªÇÀ¶á¶Ô·½µÄÎäÆ÷¡£
-                BG[i]->Rob();
-            Minutes = 40;if(TimeJudge())break;
-            for(int i=0;i<N+2;i++)//ÔÚÃ¿¸öĞ¡Ê±µÄµÚ40·Ö£ºÔÚÓĞÁ½¸öÎäÊ¿µÄ³ÇÊĞ£¬»á·¢ÉúÕ½¶·¡£
-                BG[i]->Battle();
-            for(int i=0;i<N+2;i++)//ËÀÍö´¦Àí
-                BG[i]->death();
-            Minutes = 50;if(TimeJudge())break;
-            //ÔÚÃ¿¸öĞ¡Ê±µÄµÚ50·Ö£¬Ë¾Áî²¿±¨¸æËüÓµÓĞµÄÉúÃüÔªÊıÁ¿¡£
-            Time();re<<WHPElement<<" elements in red headquarter"<<endl;
-            Time();re<<EHPElement<<" elements in blue headquarter"<<endl;
-            Minutes = 55;if(TimeJudge())break;
-            for(int i=0;i<N+2;i++)//ÔÚÃ¿¸öĞ¡Ê±µÄµÚ55·Ö£¬Ã¿¸öÎäÊ¿±¨¸æÆäÓµÓĞµÄÎäÆ÷Çé¿ö¡£
-                BG[i]->Report();//Ã¿¸ö³ÇÊĞµÄÎäÊ¿±¨¸æ
-            Hours++;
-        }
-        return;
-    }
-    ~Events(){//É¾³ıÒ»ÇĞ£¬Çå¿ÕÄÚ´æ,ÖØÖÃ±äÁ¿
-        for(int i=0;i<N+2;i++){
-            delete BG[i];
-        }
-        Red = NULL;Blue = NULL;
-    }
-};
-int main(){//Ö÷½ø³Ì
-    int n;in>>n;
-    for(int i=1;i<=n;i++){//Ñ­»·ÓÃÀı
-        re<<"Case "<<i<<":"<<endl;
-        Events* events = new Events();//½¨Á¢±¾´Î³ÌĞòµÄÊÂ¼ş
-        events->Start(n);//ÊäÈëÊı¾İ
-        delete events;//½áÊøºóÇåÀíÒ»ÇĞ
-    }
-    return 0;
-}
-
-
-
-
-#include <iostream>
-#include <fstream>
-#include <cstdio>
-#include <cmath>
-#include <string>
-#include <vector>
-#include <algorithm>
-#include <cstring>
-#include <iomanip>
-using namespace std;
-const int MaxN = 22;
-const int MaxT = 6000;
 //fstream in("in.txt");
 int M,N,K,T;
-/*Ã¿¸öË¾Áî²¿Ò»¿ªÊ¼¶¼ÓĞM¸öÉúÃüÔª( 1 <= M <= 100000)
-Á½¸öË¾Áî²¿Ö®¼äÒ»¹²ÓĞN¸ö³ÇÊĞ( 1 <= N <= 20 )
-lionÃ¿Ç°½øÒ»²½£¬ÖÒ³Ï¶È¾Í½µµÍK¡£(0<=K<=100)
-ÒªÇóÊä³ö´Ó0Ê±0·Ö¿ªÊ¼£¬µ½Ê±¼äTÎªÖ¹(°üÀ¨T) µÄËùÓĞÊÂ¼ş¡£TÒÔ·ÖÖÓÎªµ¥Î»£¬0 <= T <= 6000*/
+/*æ¯ä¸ªå¸ä»¤éƒ¨ä¸€å¼€å§‹éƒ½æœ‰Mä¸ªç”Ÿå‘½å…ƒ( 1 <= M <= 100000)
+ä¸¤ä¸ªå¸ä»¤éƒ¨ä¹‹é—´ä¸€å…±æœ‰Nä¸ªåŸå¸‚( 1 <= N <= 20 )
+lionæ¯å‰è¿›ä¸€æ­¥ï¼Œå¿ è¯šåº¦å°±é™ä½Kã€‚(0<=K<=100)
+è¦æ±‚è¾“å‡ºä»0æ—¶0åˆ†å¼€å§‹ï¼Œåˆ°æ—¶é—´Tä¸ºæ­¢(åŒ…æ‹¬T) çš„æ‰€æœ‰äº‹ä»¶ã€‚Tä»¥åˆ†é’Ÿä¸ºå•ä½ï¼Œ0 <= T <= 6000*/
 int WHPElement;
 int EHPElement;
-int RCreate;//ºì·½ÖÆÔìÎäÊ¿µÄË³ĞòÖ¸Õë
-int BCreate;//À¶·½ÖÆÔìÎäÊ¿µÄË³ĞòÖ¸Õë
+int RCreate;//çº¢æ–¹åˆ¶é€ æ­¦å£«çš„é¡ºåºæŒ‡é’ˆ
+int BCreate;//è“æ–¹åˆ¶é€ æ­¦å£«çš„é¡ºåºæŒ‡é’ˆ
 int RedWID;
 int BlueWID;
 int Hours;
 int Minutes;
-void Time(){//Ê±¼äÊä³ö
+void Time(){//æ—¶é—´è¾“å‡º
     printf("%03d:%02d ",Hours,Minutes);
     return;
 }
-class Weapon{//ÎäÆ÷
+class Weapon{//æ­¦å™¨
 public:
     int ID;
     int Number;
     int ATK;
     Weapon(int id,int n,int atk):ID(id),Number(n),ATK(atk){}
-    virtual void Effect(){return;}//ÎäÆ÷Ğ§¹û
+    virtual void Effect(){return;}//æ­¦å™¨æ•ˆæœ
 };
-class sword:public Weapon{//½£
+class sword:public Weapon{//å‰‘
 public:
     sword(int atk):Weapon(0,1,2/10*atk){//20%ATK,Number1
     }
 };
-class bomb:public Weapon{//Õ¨µ¯
+class bomb:public Weapon{//ç‚¸å¼¹
 public:
     bomb(int atk):Weapon(1,1,4/10*atk){//40%ATK,Number1
     }
 };
-class arrow:public Weapon{//¼ıÊ¸
+class arrow:public Weapon{//ç®­çŸ¢
 public:
     arrow(int atk):Weapon(2,2,3/10*atk){//30%ATK,Number2
     }
 };
-bool comp0(const Weapon* a){//ÊÇ·ñÊÇ½£
+bool comp0(const Weapon* a){//æ˜¯å¦æ˜¯å‰‘
     return a->ID == 0;
 }
-bool comp1(const Weapon* a){//ÊÇ·ñÊÇÕ¨µ¯
+bool comp1(const Weapon* a){//æ˜¯å¦æ˜¯ç‚¸å¼¹
     return a->ID == 1;
 }
-bool comp2(const Weapon* a){//ÊÇ·ñÊÇ¼ıÊ¸
+bool comp2(const Weapon* a){//æ˜¯å¦æ˜¯ç®­çŸ¢
     return a->ID == 2;
 }
-bool comp3(const Weapon* a,const Weapon* b){//ÎäÆ÷ÅÅĞò±È½Ïº¯Êı£¬¼ıÉÙµÄÔÚÇ°£¬Õ½¶·Ê¹ÓÃ
+bool comp3(const Weapon* a,const Weapon* b){//æ­¦å™¨æ’åºæ¯”è¾ƒå‡½æ•°ï¼Œç®­å°‘çš„åœ¨å‰ï¼Œæˆ˜æ–—ä½¿ç”¨
     if(a->ID < b->ID)
         return true;
-    if(a->ID == b->ID && a->ID == 2){//¶àÖ§arrow
+    if(a->ID == b->ID && a->ID == 2){//å¤šæ”¯arrow
         if(a->Number<b->Number)
             return true;
     }
     return false;
 }
-bool comp4(const Weapon* a,const Weapon* b){//ÎäÆ÷ÅÅĞò±È½Ïº¯Êı£¬¼ı¶àµÄÔÚÇ°,½É»ñºÍÇÀ¶áÊ¹ÓÃ
+bool comp4(const Weapon* a,const Weapon* b){//æ­¦å™¨æ’åºæ¯”è¾ƒå‡½æ•°ï¼Œç®­å¤šçš„åœ¨å‰,ç¼´è·å’ŒæŠ¢å¤ºä½¿ç”¨
     if(a->ID < b->ID)
         return true;
-    if(a->ID == b->ID && a->ID == 2){//¶àÖ§arrow
+    if(a->ID == b->ID && a->ID == 2){//å¤šæ”¯arrow
         if(a->Number>b->Number)
             return true;
     }
     return false;
 }
-class Warrior{//ÎäÊ¿
+class Warrior{//æ­¦å£«
 public:
-    int ID;//±àºÅ
-    int HP;//ÑªÁ¿
-    int type;//ÀàĞÍ£¬ÅÉÉúÀàÅĞ¶Ï
-    int ATK;//ÊµÌå¹¥»÷Á¦
-    vector<Weapon*>::iterator W;//Õ½¶·ÓÃÎäÆ÷Ö¸Õë
-    vector<Weapon*> Take;//ÎäÆ÷Êı×é
+    int ID;//ç¼–å·
+    int HP;//è¡€é‡
+    int type;//ç±»å‹ï¼Œæ´¾ç”Ÿç±»åˆ¤æ–­
+    int ATK;//å®ä½“æ”»å‡»åŠ›
+    vector<Weapon*>::iterator W;//æˆ˜æ–—ç”¨æ­¦å™¨æŒ‡é’ˆ
+    vector<Weapon*> Take;//æ­¦å™¨æ•°ç»„
     Warrior(int id,int hp,int t,int atk):ID(id),HP(hp),type(t),ATK(atk){}
-    void WeaponSort(int n){//ÎäÆ÷ÅÅĞò
-        if(!Take.empty()){//STLËã·¨SortÅÅĞò£¬×Ô¶¨ÒåÒ»¸ö±È½Ïº¯Êı
+    void WeaponSort(int n){//æ­¦å™¨æ’åº
+        if(!Take.empty()){//STLç®—æ³•Sortæ’åºï¼Œè‡ªå®šä¹‰ä¸€ä¸ªæ¯”è¾ƒå‡½æ•°
             if(n == 3)sort(Take.begin(),Take.end(),comp3);
             if(n == 4)sort(Take.begin(),Take.end(),comp4);
         }
         return;
     }
-    void report(){//±¨¸æÎäÆ÷Çé¿ö
+    void report(){//æŠ¥å‘Šæ­¦å™¨æƒ…å†µ
         cout<<ID<<" has ";
         cout<<count_if(Take.begin(),Take.end(),comp0)<<" sword ";
         cout<<count_if(Take.begin(),Take.end(),comp1)<<" bomb ";
@@ -850,39 +103,39 @@ public:
         return;
     }
     void Attack(Warrior* Enemy){
-        Weapon* U = *W;//ÓÃÒ»¼şÎäÆ÷
+        Weapon* U = *W;//ç”¨ä¸€ä»¶æ­¦å™¨
         switch(U->ID){
-            case 0://ÓÃ½£
+            case 0://ç”¨å‰‘
                 U->ATK = ATK*2/10;
                 break;
-            case 1://ÓÃÕ¨µ¯
+            case 1://ç”¨ç‚¸å¼¹
                 U->ATK = ATK*4/10;
-                if(type!=2)//²»ÊÇniniia
-                    HP -= U->ATK/2;//Õ¨µ¯¶Ô×ÔÉíÔì³ÉÒ»°ëÉËº¦
+                if(type!=2)//ä¸æ˜¯niniia
+                    HP -= U->ATK/2;//ç‚¸å¼¹å¯¹è‡ªèº«é€ æˆä¸€åŠä¼¤å®³
                 U->Number--;
                 break;
-            case 2://ÓÃ¼ıÊ¸
+            case 2://ç”¨ç®­çŸ¢
                 U->ATK = ATK*3/10;
                 U->Number--;
                 break;
         }
         Enemy->HP -= U->ATK;
-        if(!U->Number){//Ê¹ÓÃ´ÎÊıÃ»ÁË
+        if(!U->Number){//ä½¿ç”¨æ¬¡æ•°æ²¡äº†
             vector<Weapon*>::iterator D = W;
             //W++;
             Take.erase(D);
         }
         else
             W++;
-        if(W == Take.end())//Ò»ÂÖÎäÆ÷ÓÃÍêÖØÖÃ;
+        if(W == Take.end())//ä¸€è½®æ­¦å™¨ç”¨å®Œé‡ç½®;
             W = Take.begin();
         return;
     }
-    void Seize(Warrior* Aim){//½É»ñ²Ù×÷
-        Aim->WeaponSort(4);//Ä¿±êÎäÆ÷½ÓÊÜÅÅĞò
-        while(Take.size()<10&&!Aim->Take.empty()){//ÇÀ¶á¹ı³Ì
-            Take.push_back(*Aim->Take.begin());//ÇÀÈë¸´ÖÆ
-            Aim->Take.erase(Aim->Take.begin());//Ä¿±êÉ¾³ı
+    void Seize(Warrior* Aim){//ç¼´è·æ“ä½œ
+        Aim->WeaponSort(4);//ç›®æ ‡æ­¦å™¨æ¥å—æ’åº
+        while(Take.size()<10&&!Aim->Take.empty()){//æŠ¢å¤ºè¿‡ç¨‹
+            Take.push_back(*Aim->Take.begin());//æŠ¢å…¥å¤åˆ¶
+            Aim->Take.erase(Aim->Take.begin());//ç›®æ ‡åˆ é™¤
         }
         return;
     }
@@ -892,17 +145,17 @@ public:
     virtual void Rob(Warrior* Aim){return;}
     virtual void name(){return;};
     virtual ~Warrior(){
-        for(int i = 0;i<Take.size();i++)//ÊÖ¹¤ÊÍ·ÅÄÚ´æ
+        for(int i = 0;i<Take.size();i++)//æ‰‹å·¥é‡Šæ”¾å†…å­˜
             delete Take[i];
         //delete &Take;
     }
 };
 class dragon:public Warrior{
 public:
-    static int OriginalHP;//³õÊ¼ÉúÃüÖµ
-    static int ATK;//¹Ì¶¨¹¥»÷Á¦
+    static int OriginalHP;//åˆå§‹ç”Ÿå‘½å€¼
+    static int ATK;//å›ºå®šæ”»å‡»åŠ›
     dragon(int id):Warrior(id,OriginalHP,1,ATK){
-        //»ñµÃÎäÆ÷
+        //è·å¾—æ­¦å™¨
         switch(id%3){
             case 0:
                 Take.push_back(new sword(ATK));
@@ -924,10 +177,10 @@ int dragon::OriginalHP = 0;
 int dragon::ATK = 0;
 class ninjia:public Warrior{
 public:
-    static int OriginalHP;//³õÊ¼ÉúÃüÖµ
-    static int ATK;//¹Ì¶¨¹¥»÷Á¦
+    static int OriginalHP;//åˆå§‹ç”Ÿå‘½å€¼
+    static int ATK;//å›ºå®šæ”»å‡»åŠ›
     ninjia(int id):Warrior(id,OriginalHP,2,ATK){
-        //»ñµÃÎäÆ÷
+        //è·å¾—æ­¦å™¨
         switch(id%3){
             case 0:
                 Take.push_back(new sword(ATK));
@@ -947,16 +200,16 @@ public:
         cout<<"ninja";
         return;
     }
-    //Õ¨µ¯×Ô¼º²»ÊÜÉË
+    //ç‚¸å¼¹è‡ªå·±ä¸å—ä¼¤
 };
 int ninjia::OriginalHP = 0;
 int ninjia::ATK = 0;
 class iceman:public Warrior{
 public:
-    static int OriginalHP;//³õÊ¼ÉúÃüÖµ
-    static int ATK;//¹Ì¶¨¹¥»÷Á¦
+    static int OriginalHP;//åˆå§‹ç”Ÿå‘½å€¼
+    static int ATK;//å›ºå®šæ”»å‡»åŠ›
     iceman(int id):Warrior(id,OriginalHP,3,ATK){
-        //»ñµÃÎäÆ÷
+        //è·å¾—æ­¦å™¨
         switch(id%3){
             case 0:
                 Take.push_back(new sword(ATK));
@@ -969,7 +222,7 @@ public:
                 break;
         }
     }
-    void Move(){//ÑªÁ¿¼õÉÙĞéº¯Êı
+    void Move(){//è¡€é‡å‡å°‘è™šå‡½æ•°
         HP -= HP/10;
         return;
     }
@@ -981,12 +234,12 @@ public:
 int iceman::OriginalHP = 0;
 int iceman::ATK = 0;
 class lion:public Warrior{
-    int loyalty;//ÖÒ³Ï¶È
+    int loyalty;//å¿ è¯šåº¦
 public:
-    static int OriginalHP;//³õÊ¼ÉúÃüÖµ
-    static int ATK;//¹Ì¶¨¹¥»÷Á¦
+    static int OriginalHP;//åˆå§‹ç”Ÿå‘½å€¼
+    static int ATK;//å›ºå®šæ”»å‡»åŠ›
     lion(int id,int k):Warrior(id,OriginalHP,4,ATK),loyalty(k){
-        //»ñµÃÎäÆ÷
+        //è·å¾—æ­¦å™¨
         switch(id%3){
             case 0:
                 Take.push_back(new sword(ATK));
@@ -999,7 +252,7 @@ public:
                 break;
         }
     }
-    void Move(){//ÖÒ³Ï¶È¼õÉÙĞéº¯Êı
+    void Move(){//å¿ è¯šåº¦å‡å°‘è™šå‡½æ•°
         loyalty -= K;
         return;
     }
@@ -1007,7 +260,7 @@ public:
         cout<<loyalty;
         return;
     }
-    bool Escape(){//ÌÓÅÜ
+    bool Escape(){//é€ƒè·‘
         if(loyalty <= 0)
             return true;
         return false;
@@ -1021,19 +274,19 @@ int lion::OriginalHP = 0;
 int lion::ATK = 0;
 class wolf:public Warrior{
 public:
-    static int OriginalHP;//³õÊ¼ÉúÃüÖµ
-    static int ATK;//¹Ì¶¨¹¥»÷Á¦
+    static int OriginalHP;//åˆå§‹ç”Ÿå‘½å€¼
+    static int ATK;//å›ºå®šæ”»å‡»åŠ›
     wolf(int id):Warrior(id,OriginalHP,5,ATK){}
-    void Rob(Warrior* Aim){//ÇÀ¶áÎäÆ÷
-        Aim->WeaponSort(4);//Ä¿±êÎäÆ÷½ÓÊÜÅÅĞò
-        int RType = Aim->Take[0]->ID;//¼ÇÂ¼ÇÀ¶áÖÖÀà
-        int number = 0;//¼ÇÂ¼ÇÀ¶á¸öÊı
-        while(Take.size()<10&&!Aim->Take.empty()&&RType == Aim->Take[0]->ID){//ÇÀ¶á¹ı³Ì
-            Take.push_back(*Aim->Take.begin());//ÇÀÈë¸´ÖÆ
-            Aim->Take.erase(Aim->Take.begin());//Ä¿±êÉ¾³ı
+    void Rob(Warrior* Aim){//æŠ¢å¤ºæ­¦å™¨
+        Aim->WeaponSort(4);//ç›®æ ‡æ­¦å™¨æ¥å—æ’åº
+        int RType = Aim->Take[0]->ID;//è®°å½•æŠ¢å¤ºç§ç±»
+        int number = 0;//è®°å½•æŠ¢å¤ºä¸ªæ•°
+        while(Take.size()<10&&!Aim->Take.empty()&&RType == Aim->Take[0]->ID){//æŠ¢å¤ºè¿‡ç¨‹
+            Take.push_back(*Aim->Take.begin());//æŠ¢å…¥å¤åˆ¶
+            Aim->Take.erase(Aim->Take.begin());//ç›®æ ‡åˆ é™¤
             number++;
         }
-        //±¨¸æÇÀ¶á½á¹û
+        //æŠ¥å‘ŠæŠ¢å¤ºç»“æœ
         cout<<"took "<<number<<" ";
         switch(RType){
             case 0:
@@ -1055,20 +308,20 @@ public:
 };
 int wolf::OriginalHP = 0;
 int wolf::ATK = 0;
-class City{//³ÇÊĞ
+class City{//åŸå¸‚
 public:
     int ID;
-    Warrior* Blue;//À¶·½ÎäÊ¿
-    Warrior* Red;//ºì·½ÎäÊ¿
-    //×´Ì¬¼ÇÂ¼±äÁ¿£¨Íµ¸öÀÁ£¬Ó¦¸ÃÊ¹ÓÃ½á¹¹Ìå·â×°£©
-    int turn;//»ØºÏÊı
+    Warrior* Blue;//è“æ–¹æ­¦å£«
+    Warrior* Red;//çº¢æ–¹æ­¦å£«
+    //çŠ¶æ€è®°å½•å˜é‡ï¼ˆå·ä¸ªæ‡’ï¼Œåº”è¯¥ä½¿ç”¨ç»“æ„ä½“å°è£…ï¼‰
+    int turn;//å›åˆæ•°
     int ROHP;
     int BOHP;
     int RTN;
     int BTN;
     City(int n):ID(n),Blue(NULL),Red(NULL){}
-    void Create(int n){//Èç¹ûË¾Áî²¿ÖĞµÄÉúÃüÔª²»×ãÒÔÖÆÔìÄ³±¾¸ÃÔìµÄÎäÊ¿£¬ÄÇ¾Í´Ó´ËÍ£Ö¹ÖÆÔìÎäÊ¿¡£
-        if(n == 0){//×÷Îªºì·½ÖÆÔìÒ»¸öÎäÊ¿
+    void Create(int n){//å¦‚æœå¸ä»¤éƒ¨ä¸­çš„ç”Ÿå‘½å…ƒä¸è¶³ä»¥åˆ¶é€ æŸæœ¬è¯¥é€ çš„æ­¦å£«ï¼Œé‚£å°±ä»æ­¤åœæ­¢åˆ¶é€ æ­¦å£«ã€‚
+        if(n == 0){//ä½œä¸ºçº¢æ–¹åˆ¶é€ ä¸€ä¸ªæ­¦å£«
             switch(RCreate){
                 case 0://iceman
                     if(WHPElement>=iceman::OriginalHP){
@@ -1123,7 +376,7 @@ public:
                     break;
             }
         }
-        else if(n == 1){//×÷ÎªÀ¶·½ÖÆÔìÒ»¸öÎäÊ¿
+        else if(n == 1){//ä½œä¸ºè“æ–¹åˆ¶é€ ä¸€ä¸ªæ­¦å£«
             switch(BCreate){
                 case 0://lion
                     if(EHPElement>=lion::OriginalHP){
@@ -1181,7 +434,7 @@ public:
         }
         return;
     }
-    void Escape(){//lionÌÓÅÜ
+    void Escape(){//lioné€ƒè·‘
         if(Red!=NULL){
             if(Red->Escape()){
                 Time();cout<<"blue ";Red->name();
@@ -1200,16 +453,16 @@ public:
         }
         return;
     }
-    void Rob(){//ÓĞÀÇµÄ»°ÇÀ½Ù
+    void Rob(){//æœ‰ç‹¼çš„è¯æŠ¢åŠ«
         if(Blue!=NULL&&Red!=NULL){
-            if(Blue->type == 5&&Red->type != 5&&!Red->Take.empty()){//À¶ÇÀºì
+            if(Blue->type == 5&&Red->type != 5&&!Red->Take.empty()){//è“æŠ¢çº¢
                 Time();
                 cout<<"blue wolf "<<Blue->ID<<" ";
                 Blue->Rob(Red);
                 cout<<" from red ";Red->name();
                 cout<<" "<<Red->ID<<" in city "<<ID<<endl;
             }
-            else if(Blue->type != 5&&Red->type == 5&&!Blue->Take.empty()){//ºìÇÀÀ¶
+            else if(Blue->type != 5&&Red->type == 5&&!Blue->Take.empty()){//çº¢æŠ¢è“
                 Time();
                 cout<<"red wolf "<<Red->ID<<" ";
                 Red->Rob(Blue);
@@ -1219,38 +472,38 @@ public:
         }
         return;
     }
-    void Battle(){//³ÇÊĞÖĞÖ´ĞĞÕ½¶·
-        if(Red!=NULL&&Blue!=NULL){//·¢ÉúÕ½¶·
-            //Æ½¾ÖÅĞ¶Ï
+    void Battle(){//åŸå¸‚ä¸­æ‰§è¡Œæˆ˜æ–—
+        if(Red!=NULL&&Blue!=NULL){//å‘ç”Ÿæˆ˜æ–—
+            //å¹³å±€åˆ¤æ–­
             if(Red->Take.empty()&&Blue->Take.empty()){
                 BattleResult(1);
                 return;
             }
-            //ÎäÆ÷ÅÅĞò
+            //æ­¦å™¨æ’åº
             Red->WeaponSort(3);Blue->WeaponSort(3);
-            //¾ö¶¨ÏÈºóÊÖ,ÉèÖÃÕ½¶·ÓÃ±äÁ¿
+            //å†³å®šå…ˆåæ‰‹,è®¾ç½®æˆ˜æ–—ç”¨å˜é‡
             Warrior* first = NULL;
             Warrior* second = NULL;
-            if(ID%2){//ºì1
+            if(ID%2){//çº¢1
                 first = Red;
                 second = Blue;
             }
-            else{//À¶0
+            else{//è“0
                 first = Blue;
                 second = Red;
             }
-            first->W = first->Take.begin(); //ÎäÆ÷Ö¸Õë¹éÁã
-            second->W = second->Take.begin(); //ÎäÆ÷Ö¸Õë¹éÁã
+            first->W = first->Take.begin(); //æ­¦å™¨æŒ‡é’ˆå½’é›¶
+            second->W = second->Take.begin(); //æ­¦å™¨æŒ‡é’ˆå½’é›¶
             turn = 1;
             ROHP = Red->HP;
             BOHP = Blue->HP;
             RTN = Red->Take.size();
             BTN = Blue->Take.size();
-            while(!BattleJudge()){//while()ÏÈºóÊÖ½»ÌæÊ¹ÓÃ
-                //Õ½¶·¹ı³Ì£¬Ê¹ÓÃÒ»¼şÎäÆ÷£¬¿ÛÑªºËĞÄ»úÖÆºÍÌØÊâ¼¼ÄÜ´¦Àí
+            while(!BattleJudge()){//while()å…ˆåæ‰‹äº¤æ›¿ä½¿ç”¨
+                //æˆ˜æ–—è¿‡ç¨‹ï¼Œä½¿ç”¨ä¸€ä»¶æ­¦å™¨ï¼Œæ‰£è¡€æ ¸å¿ƒæœºåˆ¶å’Œç‰¹æ®ŠæŠ€èƒ½å¤„ç†
                 if(!first->Take.empty())
                     first->Attack(second);
-                //½»»»ĞĞ¶¯È¨
+                //äº¤æ¢è¡ŒåŠ¨æƒ
                 Warrior* temp = first;
                 first = second;
                 second = temp;
@@ -1260,32 +513,32 @@ public:
         }
         return;
     }
-    int BattleJudge(){//Ê¤¸ºÆ½¾ÖÅĞ¶Ï,0±íÊ¾»¹Ã»½áÊø
-        if(Red->HP<=0&&Blue->HP<=0)//Ë«·½¶¼ËÀÁË£¬Æ½¾Ö
+    int BattleJudge(){//èƒœè´Ÿå¹³å±€åˆ¤æ–­,0è¡¨ç¤ºè¿˜æ²¡ç»“æŸ
+        if(Red->HP<=0&&Blue->HP<=0)//åŒæ–¹éƒ½æ­»äº†ï¼Œå¹³å±€
             return 1;
-        if(Red->HP<=0)//ºì·½ËÀÁË£¬À¶·½Ê¤
+        if(Red->HP<=0)//çº¢æ–¹æ­»äº†ï¼Œè“æ–¹èƒœ
             return 3;
-        if(Blue->HP<=0)//À¶·½ËÀÁË£¬ºì·½Ê¤
+        if(Blue->HP<=0)//è“æ–¹æ­»äº†ï¼Œçº¢æ–¹èƒœ
             return 2;
-        if(Red->Take.empty()&&Blue->Take.empty())//Ë«·½¶¼»î×ÅÇÒÎäÆ÷¶¼Ã»ÁË£¬Æ½¾Ö
+        if(Red->Take.empty()&&Blue->Take.empty())//åŒæ–¹éƒ½æ´»ç€ä¸”æ­¦å™¨éƒ½æ²¡äº†ï¼Œå¹³å±€
             return 1;
-        if(turn%10 == 0){//Ë«·½×´Ì¬²»·¢Éú±ä»¯£¬Æ½¾Ö
+        if(turn%10 == 0){//åŒæ–¹çŠ¶æ€ä¸å‘ç”Ÿå˜åŒ–ï¼Œå¹³å±€
             if(Red->HP == ROHP &&
                Blue->HP == BOHP &&
                Red->Take.size() == RTN &&
                Blue->Take.size() == BTN)
                 return 1;
-            else{//¼ÇÂ¼Êı¾İ
+            else{//è®°å½•æ•°æ®
                 ROHP = Red->HP;
                 BOHP = Blue->HP;
                 RTN = Red->Take.size();
                 BTN = Blue->Take.size();
             }
         }
-        return 0;//Ã»´òÍê
+        return 0;//æ²¡æ‰“å®Œ
     }
-    void BattleResult(int n){//1Æ½¾Ö£¬2ºìÊ¤£¬3À¶Ê¤
-        //Ê¤¸º½á¹ûÊä³ö
+    void BattleResult(int n){//1å¹³å±€ï¼Œ2çº¢èƒœï¼Œ3è“èƒœ
+        //èƒœè´Ÿç»“æœè¾“å‡º
         Time();
         switch(n){
             case 1:
@@ -1304,16 +557,16 @@ public:
                 cout<<"red ";Red->name();
                 cout<<" "<<Red->ID<<" killed blue ";Blue->name();
                 cout<<" "<<Blue->ID<<" in city "<<ID<<" remaining "<<Red->HP<<" elements"<<endl;
-                Red->Seize(Blue);//½É»ñ´¦Àí
+                Red->Seize(Blue);//ç¼´è·å¤„ç†
                 break;
             case 3:
                 cout<<"blue ";Blue->name();
                 cout<<" "<<Blue->ID<<" killed red ";Red->name();
                 cout<<" "<<Red->ID<<" in city "<<ID<<" remaining "<<Blue->HP<<" elements"<<endl;
-                Blue->Seize(Red);//½É»ñ´¦Àí
+                Blue->Seize(Red);//ç¼´è·å¤„ç†
                 break;
         }
-        //dragon»¶ºô
+        //dragonæ¬¢å‘¼
         if(Red->HP>0&&Red->type == 1){
             Time();
             cout<<"red ";Red->name();
@@ -1326,7 +579,7 @@ public:
         }
         return;
     }
-    void death(){//ËÀÍö´¦Àí
+    void death(){//æ­»äº¡å¤„ç†
         if(Red!=NULL&&Red->HP<=0){
             delete Red;
             Red = NULL;
@@ -1337,7 +590,7 @@ public:
         }
         return;
     }
-    void Report(){//ÓĞÎäÊ¿µÄ»°»ã±¨
+    void Report(){//æœ‰æ­¦å£«çš„è¯æ±‡æŠ¥
         if(Red!=NULL){
             Time();
             cout<<"red ";
@@ -1360,45 +613,45 @@ public:
         Red = Blue = NULL;
     }
 };
-City* BG[MaxN];//³ÇÊĞÊı×é
-class Events{//ÊÂ¼şÊ±ÖÓ
+City* BG[MaxN];//åŸå¸‚æ•°ç»„
+class Events{//äº‹ä»¶æ—¶é’Ÿ
 public:
-    City* Red;//ºì·½Ë¾Áî²¿
-    City* Blue;//À¶·½Ë¾Áî²¿
+    City* Red;//çº¢æ–¹å¸ä»¤éƒ¨
+    City* Blue;//è“æ–¹å¸ä»¤éƒ¨
     Events(){}
-    //Ö´ĞĞ¸÷ÊÂ¼ş
-    void Start(int n){//Êı¾İÊäÈë
+    //æ‰§è¡Œå„äº‹ä»¶
+    void Start(int n){//æ•°æ®è¾“å…¥
         cin>>M>>N>>K>>T;
-        BCreate = RCreate = 0;//ÒÀÕÕ´ÎĞò´ÓÍ·¿ªÊ¼ÖÆÔìÎäÊ¿
-        RedWID = BlueWID = 1;//±àºÅ
-        Hours = Minutes = 0;//Ê±¼ä´ÓÁã¿ªÊ¼
+        BCreate = RCreate = 0;//ä¾ç…§æ¬¡åºä»å¤´å¼€å§‹åˆ¶é€ æ­¦å£«
+        RedWID = BlueWID = 1;//ç¼–å·
+        Hours = Minutes = 0;//æ—¶é—´ä»é›¶å¼€å§‹
         WHPElement = EHPElement = M;
         cin>>dragon::OriginalHP>>ninjia::OriginalHP>>iceman::OriginalHP>>lion::OriginalHP>>wolf::OriginalHP;
         cin>>dragon::ATK>>ninjia::ATK>>iceman::ATK>>lion::ATK>>wolf::ATK;
-        for(int i=0;i<N+2;i++)//³õÊ¼»¯³ÇÊĞÊı×é
+        for(int i=0;i<N+2;i++)//åˆå§‹åŒ–åŸå¸‚æ•°ç»„
             BG[i] = new City(i);
         Red = BG[0];Blue = BG[N+1];
         Process();
         return;
     }
-    bool TimeJudge(){//ÊÇ·ñ³¬Ê±
+    bool TimeJudge(){//æ˜¯å¦è¶…æ—¶
         if(Hours*60+Minutes>T)
             return true;
         return false;
     }
-    void Process(){//ÊÂ¼ş¹ı³Ì
-        while(true){//Ê±¼äµ½»òÕßÈÎÒâË¾Áî²¿±»Õ¼Áì¾ÍÍË³öÑ­»·
-            Minutes = 0;if(TimeJudge())break;//ÔÚÃ¿¸öÕûµã£¬¼´Ã¿¸öĞ¡Ê±µÄµÚ0·Ö£¬ Ë«·½µÄË¾Áî²¿ÖĞ¸÷ÓĞÒ»¸öÎäÊ¿½µÉú¡£
-            Red->Create(0);//ºì·½Ë¾Áî²¿°´ÕÕiceman¡¢lion¡¢wolf¡¢ninja¡¢dragon µÄË³ĞòÖÆÔìÎäÊ¿¡£
-            Blue->Create(1);//À¶·½Ë¾Áî²¿°´ÕÕlion¡¢dragon¡¢ninja¡¢iceman¡¢wolf µÄË³ĞòÖÆÔìÎäÊ¿¡£
+    void Process(){//äº‹ä»¶è¿‡ç¨‹
+        while(true){//æ—¶é—´åˆ°æˆ–è€…ä»»æ„å¸ä»¤éƒ¨è¢«å é¢†å°±é€€å‡ºå¾ªç¯
+            Minutes = 0;if(TimeJudge())break;//åœ¨æ¯ä¸ªæ•´ç‚¹ï¼Œå³æ¯ä¸ªå°æ—¶çš„ç¬¬0åˆ†ï¼Œ åŒæ–¹çš„å¸ä»¤éƒ¨ä¸­å„æœ‰ä¸€ä¸ªæ­¦å£«é™ç”Ÿã€‚
+            Red->Create(0);//çº¢æ–¹å¸ä»¤éƒ¨æŒ‰ç…§icemanã€lionã€wolfã€ninjaã€dragon çš„é¡ºåºåˆ¶é€ æ­¦å£«ã€‚
+            Blue->Create(1);//è“æ–¹å¸ä»¤éƒ¨æŒ‰ç…§lionã€dragonã€ninjaã€icemanã€wolf çš„é¡ºåºåˆ¶é€ æ­¦å£«ã€‚
             Minutes = 5;if(TimeJudge())break;
-            for(int i=0;i<N+2;i++)//ÔÚÃ¿¸öĞ¡Ê±µÄµÚ5·Ö£¬¸ÃÌÓÅÜµÄlion¾ÍÔÚÕâÒ»Ê±¿ÌÌÓÅÜÁË¡£
+            for(int i=0;i<N+2;i++)//åœ¨æ¯ä¸ªå°æ—¶çš„ç¬¬5åˆ†ï¼Œè¯¥é€ƒè·‘çš„lionå°±åœ¨è¿™ä¸€æ—¶åˆ»é€ƒè·‘äº†ã€‚
                 BG[i]->Escape();
             Minutes = 10;if(TimeJudge())break;
-            Warrior* R = NULL;//ÉèÖÃÒ»¸öºì·½»º´æÀ´±íÊ¾Î÷±ßµÄ³ÇÊĞÓĞÈËĞèÒªÒÆ¶¯
-            for(int i=0;i<N+2;i++){////ÔÚÃ¿¸öĞ¡Ê±µÄµÚ10·Ö£ºËùÓĞµÄÎäÊ¿³¯µĞÈËË¾Áî²¿·½ÏòÇ°½øÒ»²½¡£
-                if(i==0){//À¶·½È¥ºì·½Ë¾Áî²¿
-                    if(BG[i]->Red!=NULL){//ºì·½»º´æ
+            Warrior* R = NULL;//è®¾ç½®ä¸€ä¸ªçº¢æ–¹ç¼“å­˜æ¥è¡¨ç¤ºè¥¿è¾¹çš„åŸå¸‚æœ‰äººéœ€è¦ç§»åŠ¨
+            for(int i=0;i<N+2;i++){////åœ¨æ¯ä¸ªå°æ—¶çš„ç¬¬10åˆ†ï¼šæ‰€æœ‰çš„æ­¦å£«æœæ•Œäººå¸ä»¤éƒ¨æ–¹å‘å‰è¿›ä¸€æ­¥ã€‚
+                if(i==0){//è“æ–¹å»çº¢æ–¹å¸ä»¤éƒ¨
+                    if(BG[i]->Red!=NULL){//çº¢æ–¹ç¼“å­˜
                         R = BG[i]->Red;
                         BG[i]->Red = NULL;
                     }
@@ -1413,7 +666,7 @@ public:
                     }
                     continue;
                 }
-                if(i==N+1){//ºì·½È¥À¶·½Ë¾Áî²¿
+                if(i==N+1){//çº¢æ–¹å»è“æ–¹å¸ä»¤éƒ¨
                     if(R!=NULL){
                         BG[i]->Red = R;
                         R = NULL;
@@ -1425,7 +678,7 @@ public:
                     }
                     continue;
                 }
-                //ÒÔi³ÇÎªÄ¿µÄµØ,ºì·½´ÓÎ÷,½»»»RºÍBG[i]->RedµÄÖ¸Ïò
+                //ä»¥iåŸä¸ºç›®çš„åœ°,çº¢æ–¹ä»è¥¿,äº¤æ¢Rå’ŒBG[i]->Redçš„æŒ‡å‘
                 Warrior* temp = R;
                 R = BG[i]->Red;
                 BG[i]->Red = temp;
@@ -1435,7 +688,7 @@ public:
                     cout<<"red ";BG[i]->Red->name();cout<<" "<<BG[i]->Red->ID<<" marched to city "<<i;
                     cout<<" with "<<BG[i]->Red->HP<<" elements and force "<<BG[i]->Red->ATK<<endl;
                 }
-                if(BG[i+1]->Blue!=NULL){//À¶·½´Ó¶«
+                if(BG[i+1]->Blue!=NULL){//è“æ–¹ä»ä¸œ
                     BG[i]->Blue = BG[i+1]->Blue;
                     BG[i+1]->Blue = NULL;
                     BG[i]->Blue->Move();
@@ -1444,40 +697,40 @@ public:
                     cout<<" with "<<BG[i]->Blue->HP<<" elements and force "<<BG[i]->Blue->ATK<<endl;
                 }
             }
-            if(Red->Blue!=NULL||Blue->Red!=NULL)break;//´Ë´¦ÊÇÕ¼Áì&½áÊøÅĞ¶Ï
+            if(Red->Blue!=NULL||Blue->Red!=NULL)break;//æ­¤å¤„æ˜¯å é¢†&ç»“æŸåˆ¤æ–­
             Minutes = 35;if(TimeJudge())break;
-            for(int i=0;i<N+2;i++)//ÔÚÃ¿¸öĞ¡Ê±µÄµÚ35·Ö£ºÔÚÓĞwolf¼°ÆäµĞÈËµÄ³ÇÊĞ£¬wolfÒªÇÀ¶á¶Ô·½µÄÎäÆ÷¡£
+            for(int i=0;i<N+2;i++)//åœ¨æ¯ä¸ªå°æ—¶çš„ç¬¬35åˆ†ï¼šåœ¨æœ‰wolfåŠå…¶æ•Œäººçš„åŸå¸‚ï¼Œwolfè¦æŠ¢å¤ºå¯¹æ–¹çš„æ­¦å™¨ã€‚
                 BG[i]->Rob();
             Minutes = 40;if(TimeJudge())break;
-            for(int i=0;i<N+2;i++)//ÔÚÃ¿¸öĞ¡Ê±µÄµÚ40·Ö£ºÔÚÓĞÁ½¸öÎäÊ¿µÄ³ÇÊĞ£¬»á·¢ÉúÕ½¶·¡£
+            for(int i=0;i<N+2;i++)//åœ¨æ¯ä¸ªå°æ—¶çš„ç¬¬40åˆ†ï¼šåœ¨æœ‰ä¸¤ä¸ªæ­¦å£«çš„åŸå¸‚ï¼Œä¼šå‘ç”Ÿæˆ˜æ–—ã€‚
                 BG[i]->Battle();
-            for(int i=0;i<N+2;i++)//ËÀÍö´¦Àí
+            for(int i=0;i<N+2;i++)//æ­»äº¡å¤„ç†
                 BG[i]->death();
             Minutes = 50;if(TimeJudge())break;
-            //ÔÚÃ¿¸öĞ¡Ê±µÄµÚ50·Ö£¬Ë¾Áî²¿±¨¸æËüÓµÓĞµÄÉúÃüÔªÊıÁ¿¡£
+            //åœ¨æ¯ä¸ªå°æ—¶çš„ç¬¬50åˆ†ï¼Œå¸ä»¤éƒ¨æŠ¥å‘Šå®ƒæ‹¥æœ‰çš„ç”Ÿå‘½å…ƒæ•°é‡ã€‚
             Time();cout<<WHPElement<<" elements in red headquarter"<<endl;
             Time();cout<<EHPElement<<" elements in blue headquarter"<<endl;
             Minutes = 55;if(TimeJudge())break;
-            for(int i=0;i<N+2;i++)//ÔÚÃ¿¸öĞ¡Ê±µÄµÚ55·Ö£¬Ã¿¸öÎäÊ¿±¨¸æÆäÓµÓĞµÄÎäÆ÷Çé¿ö¡£
-                BG[i]->Report();//Ã¿¸ö³ÇÊĞµÄÎäÊ¿±¨¸æ
+            for(int i=0;i<N+2;i++)//åœ¨æ¯ä¸ªå°æ—¶çš„ç¬¬55åˆ†ï¼Œæ¯ä¸ªæ­¦å£«æŠ¥å‘Šå…¶æ‹¥æœ‰çš„æ­¦å™¨æƒ…å†µã€‚
+                BG[i]->Report();//æ¯ä¸ªåŸå¸‚çš„æ­¦å£«æŠ¥å‘Š
             Hours++;
         }
         return;
     }
-    ~Events(){//É¾³ıÒ»ÇĞ£¬Çå¿ÕÄÚ´æ,ÖØÖÃ±äÁ¿
+    ~Events(){//åˆ é™¤ä¸€åˆ‡ï¼Œæ¸…ç©ºå†…å­˜,é‡ç½®å˜é‡
         for(int i=0;i<N+2;i++){
             delete BG[i];
         }
         Red = NULL;Blue = NULL;
     }
 };
-int main(){//Ö÷½ø³Ì
+int main(){//ä¸»è¿›ç¨‹
     int n;cin>>n;
-    for(int i=1;i<=n;i++){//Ñ­»·ÓÃÀı
+    for(int i=1;i<=n;i++){//å¾ªç¯ç”¨ä¾‹
         cout<<"Case "<<i<<":"<<endl;
-        Events* events = new Events();//½¨Á¢±¾´Î³ÌĞòµÄÊÂ¼ş
-        events->Start(n);//ÊäÈëÊı¾İ
-        delete events;//½áÊøºóÇåÀíÒ»ÇĞ
+        Events* events = new Events();//å»ºç«‹æœ¬æ¬¡ç¨‹åºçš„äº‹ä»¶
+        events->Start(n);//è¾“å…¥æ•°æ®
+        delete events;//ç»“æŸåæ¸…ç†ä¸€åˆ‡
     }
     return 0;
 }
